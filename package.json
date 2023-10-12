@@ -1,0 +1,17 @@
+{
+    "name": "iac-pulumi",
+    "main": "index.ts",
+    "devDependencies": {
+        "@types/node": "^16"
+    },
+    "dependencies": {
+        "@pulumi/aws": "^5.0.0",
+        "@pulumi/awsx": "^1.0.0",
+        "@pulumi/pulumi": "^3.0.0",
+        "dotenv": "^16.3.1",
+        "env": "^0.0.2",
+        "ip": "^1.1.8",
+        "ip-cidr": "^3.1.0",
+        "netmask": "^2.0.2"
+    }
+}
