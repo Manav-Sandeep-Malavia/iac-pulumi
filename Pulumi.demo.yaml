@@ -1,0 +1,10 @@
+encryptionsalt: v1:DJqYqbsOKoc=:v1:LyPrkTMvVXrIJGv3:8EYBLsylX5gMrrsZF/i4M2KY9o2OVg==
+config:
+  aws:region: us-west-2
+  aws:profile: demo
+  VPC_IP: 10.0.0.0
+  VPC_CIDR_MASK: 16
+  SUBNET_MASK: 24
+  vpcName: "csye6225_vpc"
+  igwName: "internet Gateway"
+ 
