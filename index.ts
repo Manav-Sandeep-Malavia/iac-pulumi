@@ -68,7 +68,7 @@ availableAZ.apply(azs => {
 
 
         const privateSubnet = new aws.ec2.Subnet(`private-subnet-${i}`, {
-            cidrBlock: `10.0.${i + 10}.0/24`,
+            cidrBlock: block.toString(),
             vpcId: my_vpc.id,
             availabilityZone: az,
             tags: {
