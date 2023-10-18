@@ -7,6 +7,6 @@ config:
   SUBNET_MASK: 24
   vpcName: "csye6225_vpc"
   igwName: "internet Gateway"
-  ami: "ami-09f08af33a007d20b"
+  ami: "ami-050f0dcface320095"
   keyName: "ass5_keypair_demo"
  
