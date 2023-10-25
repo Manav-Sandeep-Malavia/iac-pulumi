@@ -7,5 +7,11 @@ config:
   SUBNET_MASK: 24
   vpcName: "csye6225_vpc"
   igwName: "internet Gateway"
-  ami: "ami-050f0dcface320095"
+  aws_account : 285374070538
   keyName: "ass5_keypair"
+  port: 3000
+  dialect : mariadb
+  defaultuserpath: '/opt/user.csv'
+  username: root
+  password: root1234
+  dbName: csye6225_db
