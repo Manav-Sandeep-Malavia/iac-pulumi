@@ -15,3 +15,5 @@ config:
   username: root
   password: root1234
   dbName: csye6225_db
+  hostedZone: dev.manavmalavia.me
+  domainName: dev.manavmalavia.me
