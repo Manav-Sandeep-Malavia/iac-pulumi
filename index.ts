@@ -17,7 +17,6 @@ const my_vpc = new aws.ec2.Vpc("my_vpc", {
     Name: vpcname,
   },
 });
-
 // Creating Internet Gateway for VPC
 const app_igw = new aws.ec2.InternetGateway("app_igw", {
   vpcId: my_vpc.id,
@@ -204,6 +203,22 @@ const ami_id = pulumi.output(aws.ec2.getAmi({
     keyName: keyName,
     userData: userDataScript, // Provide the user data script here
   });
+
+
+  const hostedZoneName = config.require('hostedZone');
+  const hostedZone = aws.route53.getZone({ name: hostedZoneName });
+
+  // Create an A record for the domain
+  const record = new aws.route53.Record("record", {
+    name: config.require('domainName'),
+    type: "A",
+    ttl: 300,
+    zoneId: hostedZone.then(zone => zone.zoneId),
+    records: [ec2.publicIp],
+  });
+
+
+
 
   // // Export the ID and Public IP of the Instance
   // export const instanceId = ec2.id;
