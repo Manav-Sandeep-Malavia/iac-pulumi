@@ -17,7 +17,7 @@ const my_vpc = new aws.ec2.Vpc("my_vpc", {
     Name: vpcname,
   },
 });
-// Creating Internet Gateway for VPC
+
 const app_igw = new aws.ec2.InternetGateway("app_igw", {
   vpcId: my_vpc.id,
   tags: {
@@ -44,7 +44,7 @@ const privateRT = new aws.ec2.RouteTable("privateRT", {
   },
 });
 
-// Create a default route in the public route table for the Internet Gateway
+
 new aws.ec2.Route("publicRoute", {
   routeTableId: publicRT.id,
   destinationCidrBlock: "0.0.0.0/0",
@@ -54,7 +54,7 @@ new aws.ec2.Route("publicRoute", {
 const availableAZ = az.apply((az) => az.names.slice(0, 3));
 var block = new netmask.Netmask(networkIP + "/" + subnetMask);
 
-// Function to create a subnet asynchronously
+
 const createSubnet = (az: string, i: number) => {
   const publicSubnet = new aws.ec2.Subnet(`public-subnet-${i}`, {
     cidrBlock: block.toString(),
@@ -89,13 +89,13 @@ const createSubnet = (az: string, i: number) => {
   });
 };
 
-// Create subnets asynchronously
+
 availableAZ.apply((azs) => {
   azs.forEach((az, i) => {
     createSubnet(az, i);
   });
 
-  // Create a security group for the web application
+  
   const webappSecurityGroup = new aws.ec2.SecurityGroup("webappSecurityGroup", {
     vpcId: my_vpc.id,
     description: "Web application security group",
@@ -121,11 +121,18 @@ availableAZ.apply((azs) => {
       toPort: 3306,
       protocol: "tcp",
       cidrBlocks: ["0.0.0.0/0"],
+    },
+    {
+      protocol: "tcp",
+      fromPort: 443,
+      toPort: 443,
+      cidrBlocks: ["0.0.0.0/0"],
+    }
+  ],
 
-  }],
   });
 
-  // Now you can access the subnet IDs outside the loop
+  
   const publicSubnetIds = publicSubnets.map((subnet) => subnet.id);
   const privateSubnetIds = privateSubnets.map((subnet) => subnet.id);
 
@@ -154,20 +161,20 @@ availableAZ.apply((azs) => {
     subnetIds: [privateSubnets[0].id, privateSubnets[1].id],
   });
 
-// Create MariaDB RDS instance
+
   const mariadbInstance = new aws.rds.Instance("mariadb-instance", {
     allocatedStorage: 20,
     engine: "mariadb",
-    engineVersion: "10.11.5", // Use the correct version
+    engineVersion: "10.11.5", 
     instanceClass: "db.t3.micro",
     multiAz: false,
     parameterGroupName: mariadbParameterGroup.id,
-    username: config.require('username'), // Replace with your username
-    password: config.require('password'), // Replace with your password
-    dbName: config.require('dbName'), // Replace with your database name
+    username: config.require('username'), 
+    password: config.require('password'), 
+    dbName: config.require('dbName'), 
     dbSubnetGroupName: mariadbSubnetGroup.name,
     publiclyAccessible: false,
-    skipFinalSnapshot: true, // Set this to false if you want a snapshot
+    skipFinalSnapshot: true, 
     vpcSecurityGroupIds: [mariadbSG.id],
   });
 
@@ -179,6 +186,11 @@ availableAZ.apply((azs) => {
   echo 'DB_PORT=${config.require('port')}' >> /etc/environment
   echo 'DIALECT=${config.require('dialect')}' >> /etc/environment
   echo 'DEFAULTUSERPATH=${config.require('defaultuserpath')}' >> /etc/environment
+  sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+    -a fetch-config \
+    -m ec2 \
+    -c file:/opt/webapp/cloudwatch-config.json \
+    -s
 `;
 const ami_id = pulumi.output(aws.ec2.getAmi({
   owners: [ config.require('aws_account') ],
@@ -187,7 +199,31 @@ const ami_id = pulumi.output(aws.ec2.getAmi({
       { name: "name", values: [ "csye6225_debianami-*" ] },
   ],
 }));
-// Create an EC2 instance with the given inputs and user data
+
+const role = new aws.iam.Role("role", {
+  assumeRolePolicy: JSON.stringify({
+      "Version": "2012-10-17",
+      "Statement": [{
+          "Effect": "Allow",
+          "Principal": {
+              "Service": "ec2.amazonaws.com"
+          },
+          "Action": "sts:AssumeRole",
+      }],
+  }),
+});
+
+new aws.iam.RolePolicyAttachment("rolePolicyAttachment", {
+  role: role.id,
+  policyArn: "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+});
+
+
+const roleInstanceProfile = new aws.iam.InstanceProfile("roleInstanceProfile", {
+  role: role.name,
+});
+
+
   const ec2 = new aws.ec2.Instance("web-server", {
     ami: ami_id.id,
     instanceType: "t2.micro",
@@ -201,14 +237,15 @@ const ami_id = pulumi.output(aws.ec2.getAmi({
     associatePublicIpAddress: true,
     disableApiTermination: false,
     keyName: keyName,
-    userData: userDataScript, // Provide the user data script here
+    iamInstanceProfile: roleInstanceProfile.name,
+    userData: userDataScript, 
   });
 
 
   const hostedZoneName = config.require('hostedZone');
   const hostedZone = aws.route53.getZone({ name: hostedZoneName });
 
-  // Create an A record for the domain
+  
   const record = new aws.route53.Record("record", {
     name: config.require('domainName'),
     type: "A",
@@ -218,9 +255,4 @@ const ami_id = pulumi.output(aws.ec2.getAmi({
   });
 
 
-
-
-  // // Export the ID and Public IP of the Instance
-  // export const instanceId = ec2.id;
-  // export const publicIp = ec2.publicIp;
 });
