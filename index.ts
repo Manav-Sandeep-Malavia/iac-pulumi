@@ -116,12 +116,7 @@ availableAZ.apply((azs) => {
       }, // Your application port
       
     ],
-    egress: [{
-      fromPort: 3306,
-      toPort: 3306,
-      protocol: "tcp",
-      cidrBlocks: ["0.0.0.0/0"],
-    },
+    egress: [
     {
       protocol: "tcp",
       fromPort: 443,
@@ -143,11 +138,20 @@ availableAZ.apply((azs) => {
         protocol: "tcp",
         fromPort: 3306,
         toPort: 3306,
-        cidrBlocks: ["0.0.0.0/0"],
         securityGroups: [webappSecurityGroup.id]
       },
     ],
   });
+
+  let myEgressRule = new aws.ec2.SecurityGroupRule("myEgressRule", {
+    type: "egress",
+    securityGroupId: webappSecurityGroup.id,
+    protocol: "tcp",
+    fromPort: 3306,
+    toPort: 3306,
+    sourceSecurityGroupId: mariadbSG.id
+  
+})
 
   const mariadbParameterGroup = new aws.rds.ParameterGroup(
     "mariadb-parameter-group",
