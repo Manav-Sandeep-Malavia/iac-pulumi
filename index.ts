@@ -348,7 +348,7 @@ availableAZ.apply((azs) => {
     scalingAdjustment: 1, 
   });
 
-// Scaling down policy
+
   const scaleDownPolicy = new aws.autoscaling.Policy("scaleDownPolicy", {
       autoscalingGroupName: autoScalingGroup.name,
       adjustmentType: "ChangeInCapacity",
@@ -386,7 +386,7 @@ availableAZ.apply((azs) => {
       },
   });
 
-// Create an Application Load Balancer
+
   const appLoadBalancer = new aws.lb.LoadBalancer("appLoadBalancer", {
       internal: false,
       loadBalancerType: "application",
@@ -395,7 +395,7 @@ availableAZ.apply((azs) => {
       enableDeletionProtection: false,
   });
 
-// Create a target group
+
   const appTargetGroup = new aws.lb.TargetGroup("appTargetGroup", {
       port: 3000,
       protocol: "HTTP",
@@ -404,8 +404,7 @@ availableAZ.apply((azs) => {
       healthCheck: {
         enabled: true,
         path: "/healthz", 
-        protocol: "HTTP",
-        // port: "traffic-port", 
+        protocol: "HTTP", 
         interval: 30, 
         timeout: 5, 
         healthyThreshold: 2, 
@@ -414,7 +413,7 @@ availableAZ.apply((azs) => {
 
   });
 
-// Create a listener for HTTP traffic on port 80
+
   const listener = new aws.lb.Listener("listener", {
       loadBalancerArn: appLoadBalancer.arn,
       port: 80,
@@ -435,7 +434,7 @@ availableAZ.apply((azs) => {
       evaluateTargetHealth: true,
     }],    
   });
-// Attach the target group to the auto-scaling group
+
   const attachment = new aws.autoscaling.Attachment("asgAttachment", {
       autoscalingGroupName: autoScalingGroup.name,
       lbTargetGroupArn: appTargetGroup.arn,
