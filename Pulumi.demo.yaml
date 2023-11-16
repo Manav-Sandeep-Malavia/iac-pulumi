@@ -1,19 +1,19 @@
-encryptionsalt: v1:DJqYqbsOKoc=:v1:LyPrkTMvVXrIJGv3:8EYBLsylX5gMrrsZF/i4M2KY9o2OVg==
+encryptionsalt: v1:GSuB7352hok=:v1:R07QQ47JlgJxbwAw:WaUeJ5rRErUScP/DUBI1HOiYJ3Mj3g==
 config:
-  aws:region: us-west-2
   aws:profile: demo
-  VPC_IP: 10.0.0.0
-  VPC_CIDR_MASK: 16
-  SUBNET_MASK: 24
-  vpcName: "csye6225_vpc"
-  igwName: "internet Gateway"
-  aws_account : 285374070538
-  keyName: "ass5_keypair_demo"
-  port: 3000
-  dialect : mariadb
-  defaultuserpath: '/opt/user.csv'
-  username: root
-  password: root1234
-  dbName: csye6225_db
-  hostedZone: demo.manavmalavia.me
-  domainName: demo.manavmalavia.me
+  aws:region: us-west-2
+  iac-pulumi:SUBNET_MASK: "24"
+  iac-pulumi:VPC_CIDR_MASK: "16"
+  iac-pulumi:VPC_IP: 10.0.0.0
+  iac-pulumi:aws_account: "285374070538"
+  iac-pulumi:dbName: csye6225_db
+  iac-pulumi:defaultuserpath: /opt/user.csv
+  iac-pulumi:dialect: mariadb
+  iac-pulumi:domainName: demo.manavmalavia.me
+  iac-pulumi:hostedZone: demo.manavmalavia.me
+  iac-pulumi:igwName: internet Gateway
+  iac-pulumi:keyName: ass5_keypair_demo
+  iac-pulumi:password: root1234
+  iac-pulumi:port: "3000"
+  iac-pulumi:username: root
+  iac-pulumi:vpcName: csye6225_vpc
