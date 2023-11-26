@@ -2,6 +2,12 @@ import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as netmask from "netmask";
 import * as cloudwatch from "@pulumi/aws/cloudwatch";
+import * as gcp from "@pulumi/gcp";
+import { Topic } from "@pulumi/aws/sns";
+const AWS = require('aws-sdk');
+const { v4: uuidv4 } = require('uuid');
+
+
 
 const config = new pulumi.Config();
 const networkIP = config.require("VPC_IP");
@@ -10,6 +16,8 @@ const subnetMask = config.require("SUBNET_MASK");
 const vpcname = config.require("vpcName");
 const igwname = config.require("igwName");
 const keyName = config.require("keyName");
+
+const topic = new aws.sns.Topic("webapp-sns");
 
 const logGroup = new aws.cloudwatch.LogGroup("my-log-group", {
     name: "csye6225_webapp",
@@ -193,13 +201,21 @@ availableAZ.apply((azs) => {
   
   })
 
-  const mariadbParameterGroup = new aws.rds.ParameterGroup(
-    "mariadb-parameter-group",
-    {
-      family: "mariadb10.11",
-      description: "Parameter group for MariaDB",
-    }
-  );
+
+const mariadbParameterGroup = new aws.rds.ParameterGroup(
+  "mariadb-parameter-group",
+  {
+    family: "mariadb10.11",
+    description: "Parameter group for MariaDB",
+    parameters: [
+      {
+        name: "max_connections",
+        value: "100", 
+      },
+    ],
+  }
+);
+
 
   const mariadbSubnetGroup = new aws.rds.SubnetGroup("mariadb-subnet-group", {
     subnetIds: [privateSubnets[0].id, privateSubnets[1].id],
@@ -226,6 +242,9 @@ availableAZ.apply((azs) => {
   echo 'DB_USER=${mariadbInstance.username}' >> /etc/environment
   echo 'DB_PASSWORD=${mariadbInstance.password}' >> /etc/environment
   echo 'DB_NAME=${mariadbInstance.dbName}' >> /etc/environment
+  echo 'TOPICARN=${topic.arn}' >> /etc/environment
+  echo 'ACCESSKEY=${config.require('accessKey')}' >> /etc/environment
+  echo 'SECRETACCESSKEY=${config.require('secretAccessKey')}' >> /etc/environment
   echo 'DB_HOST=${mariadbInstance.address}' >> /etc/environment
   echo 'DB_PORT=${config.require('port')}' >> /etc/environment
   echo 'DIALECT=${config.require('dialect')}' >> /etc/environment
@@ -236,6 +255,7 @@ availableAZ.apply((azs) => {
     -c file:/opt/webapp/cloudwatch-config.json \
     -s
   `;
+
 
   const ami_id = pulumi.output(aws.ec2.getAmi({
     owners: [ config.require('aws_account') ],
@@ -401,6 +421,7 @@ availableAZ.apply((azs) => {
       protocol: "HTTP",
       vpcId: my_vpc.id,
       targetType: "instance",
+      deregistrationDelay:60,
       healthCheck: {
         enabled: true,
         path: "/healthz", 
@@ -441,6 +462,153 @@ availableAZ.apply((azs) => {
   }, 
   { dependsOn: [appLoadBalancer, appTargetGroup] });
 
+
+  const tableName = "emailTable"; 
+
+  const table = new aws.dynamodb.Table(tableName, {
+      name: tableName,
+      attributes: [
+          {
+              name: "id",
+              type: "S",  
+          },
+      ],
+      hashKey: "id",
+      billingMode: "PAY_PER_REQUEST",
+      tags: {
+          Name: "EmailsDynamoDBTable",
+      },
+  });
+
+  // google setup
+  const gcsbucket = config.require('bucketname'); 
+
+  const bucketName = new gcp.storage.Bucket("webapp_bucket", {
+      name: gcsbucket,
+      location: "US", 
+      forceDestroy: true,
+  });
+  
+  const serviceAccountId = config.require('serviceAccountId'); 
+
+  
+  const serviceAccount = new gcp.serviceaccount.Account("serviceAccount", {
+      accountId: serviceAccountId, 
+      displayName: "My Service Account",
+      project: config.require('project'),
+  });
+
+  
+  const serviceAccountKey = new gcp.serviceaccount.Key("myServiceAccountKey", {
+      serviceAccountId: serviceAccount.name,
+  });
+
+  const customRole = new gcp.projects.IAMCustomRole("myCustomRole", {
+    roleId: "StorageObjectCreator",
+    title: "Storage Object Creator",
+    permissions: ["storage.objects.create"],
+    project: config.require('project'),
+  });
+
+
+  const roleBinding = new gcp.projects.IAMMember("myRoleBinding", {
+    role: 'roles/storage.admin',
+    member: pulumi.interpolate`serviceAccount:${serviceAccount.email}`,
+    project: config.require('project'),
+  });
+
+  const creds = pulumi.all([serviceAccountKey.privateKey]).apply(([privateKey]) => {
+    return Buffer.from(privateKey, 'base64').toString();
+});
+
+
+// sns and lambda
+  
+
+
+  const lambdaRole = new aws.iam.Role("lambdaRole", {
+    assumeRolePolicy: JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+            Action: "sts:AssumeRole",
+            Effect: "Allow",
+            Principal: {
+                Service: "lambda.amazonaws.com",
+            },
+        }],
+    }),
+  });
+
+  
+  const lambdaPolicy = new aws.iam.RolePolicy("lambdaPolicy", {
+    role: lambdaRole,
+    policy: JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+            {
+                Action: ["logs:*"],
+                Effect: "Allow",
+                Resource: "arn:aws:logs:*:*:*",
+            },
+            {
+                Action: [
+                    "s3:GetObject",
+                    "s3:ListBucket"
+                ],
+                Effect: "Allow",
+                Resource: [
+                    "arn:aws:s3:::webapp-lambda/*",
+                    "arn:aws:s3:::webapp-lambda"
+                ]
+            },
+            {
+            Action: ["dynamodb:PutItem"],
+            Effect: "Allow",
+            Resource: ["arn:aws:dynamodb:us-west-2:518683749434:table/emailTable"]
+          }
+        ],
+    }),
+  });
+
+
+  
+  const myLambda = new aws.lambda.Function("webapp-sns-lambda", {
+    runtime: aws.lambda.Runtime.NodeJS16dX, 
+    s3Bucket: 'webapp-lambda',
+    s3Key: 'lambda_function.zip',
+    handler: "index.handler",
+    role: lambdaRole.arn,
+    environment: {
+      variables: {
+        GCP_SERVICE_ACCOUNT_KEY: creds, 
+        MAILGUN_API_KEY: config.require('mailgun_api'),
+        BUCKET_NAME: bucketName.name, 
+        DYNAMODB_TABLE_NAME: table.name,
+        AWS_ACCESSKEY: config.require('accessKey'),
+        AWS_SECRET_ACCESSKEY:config.require('secretAccessKey')
+
+      }
+    },
+    timeout: 600 
+  });
+
+
+  
+  const mySubscription = new aws.sns.TopicSubscription("mySubscription", {
+    topic: topic.arn,
+    protocol: "lambda",
+    endpoint: myLambda.arn,
+  });
+
+
+  const lambdaPermission = new aws.lambda.Permission("lambdaPermission", {
+    action: "lambda:InvokeFunction",
+    function: myLambda.name,
+    principal: "sns.amazonaws.com",
+    sourceArn: topic.arn,
+  });
+
+  
 
 
 
