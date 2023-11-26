@@ -17,3 +17,6 @@ config:
   iac-pulumi:port: "3000"
   iac-pulumi:username: root
   iac-pulumi:vpcName: csye6225_vpc
+  iac-pulumi:project: 'dependable-fuze-405922'
+  iac-pulumi:bucketname: 'webappbucket_manav18'
+  iac-pulumi:mailgun_api: 7a225621fcf62132d11b20bf8482117f-8c9e82ec-a8f738ab
