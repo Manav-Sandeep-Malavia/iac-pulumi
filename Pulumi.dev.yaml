@@ -2,10 +2,12 @@ encryptionsalt: v1:/3D0XEMEQD0=:v1:Nr+xonNjYCdAE2/Y:jCLWGiN4vwZALxfY8YbVNJxUcPqO
 config:
   aws:profile: dev
   aws:region: us-west-2
+  gcp:project: dependable-fuze-405922
   iac-pulumi:SUBNET_MASK: "24"
   iac-pulumi:VPC_CIDR_MASK: "16"
   iac-pulumi:VPC_IP: 10.0.0.0
   iac-pulumi:aws_account: "285374070538"
+  iac-pulumi:bucketname: 'webappbucket_manav18'
   iac-pulumi:dbName: csye6225_db
   iac-pulumi:defaultuserpath: /opt/user.csv
   iac-pulumi:dialect: mariadb
@@ -13,10 +15,14 @@ config:
   iac-pulumi:hostedZone: dev.manavmalavia.me
   iac-pulumi:igwName: internet Gateway
   iac-pulumi:keyName: ass5_keypair
+  iac-pulumi:mailgun_api: 7a225621fcf62132d11b20bf8482117f-8c9e82ec-a8f738ab
   iac-pulumi:password: root1234
   iac-pulumi:port: "3000"
+  iac-pulumi:project: 'dependable-fuze-405922'
+  iac-pulumi:serviceAccountId: 'webapp-service-account183'
   iac-pulumi:username: root
   iac-pulumi:vpcName: csye6225_vpc
-  iac-pulumi:project: 'dependable-fuze-405922'
-  iac-pulumi:bucketname: 'webappbucket_manav18'
-  iac-pulumi:mailgun_api: 7a225621fcf62132d11b20bf8482117f-8c9e82ec-a8f738ab
+  iac-pulumi:region: us-west-2
+  iac-pulumi:tableName: emailTable
+  iac-pulumi:s3bucket: webapp-manav-dev
+  iac-pulumi:s3key: lambda_function.zip
