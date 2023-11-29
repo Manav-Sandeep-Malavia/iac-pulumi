@@ -243,8 +243,7 @@ const mariadbParameterGroup = new aws.rds.ParameterGroup(
   echo 'DB_PASSWORD=${mariadbInstance.password}' >> /etc/environment
   echo 'DB_NAME=${mariadbInstance.dbName}' >> /etc/environment
   echo 'TOPICARN=${topic.arn}' >> /etc/environment
-  echo 'ACCESSKEY=${config.require('accessKey')}' >> /etc/environment
-  echo 'SECRETACCESSKEY=${config.require('secretAccessKey')}' >> /etc/environment
+  echo 'AWS_REGION=${config.require('region')}' >> /etc/environment
   echo 'DB_HOST=${mariadbInstance.address}' >> /etc/environment
   echo 'DB_PORT=${config.require('port')}' >> /etc/environment
   echo 'DIALECT=${config.require('dialect')}' >> /etc/environment
@@ -281,6 +280,10 @@ const mariadbParameterGroup = new aws.rds.ParameterGroup(
   new aws.iam.RolePolicyAttachment("rolePolicyAttachment", {
     role: role.id,
     policyArn: "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+  });
+  new aws.iam.RolePolicyAttachment("generalrolepolicy", {
+    role: role.id,
+    policyArn: aws.iam.ManagedPolicies.AmazonSNSFullAccess,
   });
 
 
@@ -463,7 +466,7 @@ const mariadbParameterGroup = new aws.rds.ParameterGroup(
   { dependsOn: [appLoadBalancer, appTargetGroup] });
 
 
-  const tableName = "emailTable"; 
+  const tableName = config.require('tableName'); 
 
   const table = new aws.dynamodb.Table(tableName, {
       name: tableName,
@@ -485,10 +488,12 @@ const mariadbParameterGroup = new aws.rds.ParameterGroup(
 
   const bucketName = new gcp.storage.Bucket("webapp_bucket", {
       name: gcsbucket,
-      location: "US", 
+      location: "us-west1", 
       forceDestroy: true,
   });
   
+  
+
   const serviceAccountId = config.require('serviceAccountId'); 
 
   
@@ -512,7 +517,7 @@ const mariadbParameterGroup = new aws.rds.ParameterGroup(
 
 
   const roleBinding = new gcp.projects.IAMMember("myRoleBinding", {
-    role: 'roles/storage.admin',
+    role: customRole.name,
     member: pulumi.interpolate`serviceAccount:${serviceAccount.email}`,
     project: config.require('project'),
   });
@@ -539,43 +544,28 @@ const mariadbParameterGroup = new aws.rds.ParameterGroup(
     }),
   });
 
-  
-  const lambdaPolicy = new aws.iam.RolePolicy("lambdaPolicy", {
-    role: lambdaRole,
-    policy: JSON.stringify({
-        Version: "2012-10-17",
-        Statement: [
-            {
-                Action: ["logs:*"],
-                Effect: "Allow",
-                Resource: "arn:aws:logs:*:*:*",
-            },
-            {
-                Action: [
-                    "s3:GetObject",
-                    "s3:ListBucket"
-                ],
-                Effect: "Allow",
-                Resource: [
-                    "arn:aws:s3:::webapp-lambda/*",
-                    "arn:aws:s3:::webapp-lambda"
-                ]
-            },
-            {
-            Action: ["dynamodb:PutItem"],
-            Effect: "Allow",
-            Resource: ["arn:aws:dynamodb:us-west-2:518683749434:table/emailTable"]
-          }
-        ],
-    }),
+  new aws.iam.RolePolicyAttachment("basicexecutionrolepolicy", {
+    role: lambdaRole.id,
+    policyArn: aws.iam.ManagedPolicies.AWSLambdaBasicExecutionRole,
+  });
+
+  new aws.iam.RolePolicyAttachment("s3rolepolicy", {
+    role: lambdaRole.id,
+    policyArn: aws.iam.ManagedPolicies.AmazonS3ReadOnlyAccess,
+  });
+
+  new aws.iam.RolePolicyAttachment("dynamodbrolepolicy", {
+    role: lambdaRole.id,
+    policyArn: aws.iam.ManagedPolicies.AmazonDynamoDBFullAccess,
   });
 
 
   
   const myLambda = new aws.lambda.Function("webapp-sns-lambda", {
+    name: 'webapp-sns-lambda',
     runtime: aws.lambda.Runtime.NodeJS16dX, 
-    s3Bucket: 'webapp-lambda',
-    s3Key: 'lambda_function.zip',
+    s3Bucket: config.require('s3bucket'),
+    s3Key: config.require('s3key'),
     handler: "index.handler",
     role: lambdaRole.arn,
     environment: {
@@ -584,9 +574,6 @@ const mariadbParameterGroup = new aws.rds.ParameterGroup(
         MAILGUN_API_KEY: config.require('mailgun_api'),
         BUCKET_NAME: bucketName.name, 
         DYNAMODB_TABLE_NAME: table.name,
-        AWS_ACCESSKEY: config.require('accessKey'),
-        AWS_SECRET_ACCESSKEY:config.require('secretAccessKey')
-
       }
     },
     timeout: 600 

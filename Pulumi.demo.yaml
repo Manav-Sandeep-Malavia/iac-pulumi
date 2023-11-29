@@ -6,9 +6,8 @@ config:
   iac-pulumi:SUBNET_MASK: "24"
   iac-pulumi:VPC_CIDR_MASK: "16"
   iac-pulumi:VPC_IP: 10.0.0.0
-  iac-pulumi:accessKey: AKIAXRQ7V5Q5PP624CUJ
-  iac-pulumi:secretAccessKey: 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
   iac-pulumi:aws_account: "285374070538"
+  iac-pulumi:bucketname: 'webappbucket_manav18'
   iac-pulumi:dbName: csye6225_db
   iac-pulumi:defaultuserpath: /opt/user.csv
   iac-pulumi:dialect: mariadb
@@ -19,8 +18,11 @@ config:
   iac-pulumi:mailgun_api: 7a225621fcf62132d11b20bf8482117f-8c9e82ec-a8f738ab
   iac-pulumi:password: root1234
   iac-pulumi:port: "3000"
+  iac-pulumi:project: 'rapid-booking-405922'
+  iac-pulumi:serviceAccountId: 'webapp-service-account'
   iac-pulumi:username: root
   iac-pulumi:vpcName: csye6225_vpc
-  iac-pulumi:project: 'rapid-booking-405922'
-  iac-pulumi:bucketname: 'webappbucket_manav18'
-  iac-pulumi:serviceAccountId: 'webapp-service-account18'
+  iac-pulumi:region: us-west-2
+  iac-pulumi:tableName: emailTable
+  iac-pulumi:s3bucket: webapp-manav
+  iac-pulumi:s3key: lambda_function.zip
