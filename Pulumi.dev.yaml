@@ -26,3 +26,6 @@ config:
   iac-pulumi:tableName: emailTable
   iac-pulumi:s3bucket: webapp-manav-dev
   iac-pulumi:s3key: lambda_function.zip
+  iac-pulumi:autoscalingGroupName: webapp-autoscaling
+  iac-pulumi:launchTemplateName: webapp-launchtemplate
+  iac-pulumi:certificateArn: arn:aws:acm:us-west-2:285374070538:certificate/424bd7f9-7a63-4415-8320-67bee84d1a3a
