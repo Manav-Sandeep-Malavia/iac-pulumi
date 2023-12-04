@@ -303,7 +303,7 @@ const mariadbParameterGroup = new aws.rds.ParameterGroup(
     return `${year}_${month}_${day}_${hours}_${minutes}_${seconds}`;
 }
   const launchTemplate = new aws.ec2.LaunchTemplate("launchTemplate", {
-    name:"webapp-launchtemplate",
+    name:config.require('launchTemplateName'),
     imageId: ami_id.id,
     instanceType: "t2.micro",
     keyName: keyName,
@@ -348,7 +348,7 @@ const mariadbParameterGroup = new aws.rds.ParameterGroup(
   });
 
   const autoScalingGroup = new aws.autoscaling.Group("autoScalingGroup", {
-      name:"webapp-autoscaling",
+      name:config.require('autoscalingGroupName'),
       desiredCapacity: 1,
       maxSize: 3,
       minSize: 1,
