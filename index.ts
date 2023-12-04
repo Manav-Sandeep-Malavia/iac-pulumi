@@ -119,13 +119,7 @@ availableAZ.apply((azs) => {
     vpcId: my_vpc.id,
     description: "Load balancer security group",
     ingress: [
-      // HTTP access
-      {
-        protocol: "tcp",
-        fromPort: 80,
-        toPort: 80,
-        cidrBlocks: ["0.0.0.0/0"],
-      },
+      
       // HTTPS access
       {
         protocol: "tcp",
@@ -309,6 +303,7 @@ const mariadbParameterGroup = new aws.rds.ParameterGroup(
     return `${year}_${month}_${day}_${hours}_${minutes}_${seconds}`;
 }
   const launchTemplate = new aws.ec2.LaunchTemplate("launchTemplate", {
+    name:"webapp-launchtemplate",
     imageId: ami_id.id,
     instanceType: "t2.micro",
     keyName: keyName,
@@ -353,13 +348,14 @@ const mariadbParameterGroup = new aws.rds.ParameterGroup(
   });
 
   const autoScalingGroup = new aws.autoscaling.Group("autoScalingGroup", {
+      name:"webapp-autoscaling",
       desiredCapacity: 1,
       maxSize: 3,
       minSize: 1,
       defaultCooldown:60,
       launchTemplate: {
           id: launchTemplate.id,
-          version: launchTemplate.latestVersion.apply(version => version.toString()), 
+          version: "$Latest"
       },
       vpcZoneIdentifiers: publicSubnets.map(subnet => subnet.id),
   });
@@ -440,8 +436,9 @@ const mariadbParameterGroup = new aws.rds.ParameterGroup(
 
   const listener = new aws.lb.Listener("listener", {
       loadBalancerArn: appLoadBalancer.arn,
-      port: 80,
-      protocol: "HTTP",
+      port: 443,
+      protocol: "HTTPS",
+      certificateArn: config.require('certificateArn'),
       defaultActions: [{
           type: "forward",
           targetGroupArn: appTargetGroup.arn,
